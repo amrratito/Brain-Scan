@@ -8,7 +8,7 @@ const upload = require('../middlewares/uploadMiddleware');
  * @swagger
  * /api/scans/upload:
  *   post:
- *     summary: Upload a brain scan
+ *     summary: Upload and analyze a brain scan
  *     tags: [Scans]
  *     security:
  *       - bearerAuth: []
@@ -30,9 +30,26 @@ const upload = require('../middlewares/uploadMiddleware');
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Scan'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 scan:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     diagnosisResult:
+ *                       type: string
+ *                     confidence:
+ *                       type: number
+ *                     analysisTimestamp:
+ *                       type: string
+ *                       format: date-time
  *       401:
  *         description: Not authorized
+ *       500:
+ *         description: Server error
  */
 router.post('/upload', protect, upload.single('file'), uploadScan);
 

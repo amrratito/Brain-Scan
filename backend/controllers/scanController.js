@@ -2,10 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Scan = require('../models/Scan');
 const sendEmail = require('../utils/sendEmail');
-const PDFDocument = require('pdfkit');
-
-
-
+const { analyzeBrainScan } = require('../utils/geminiService');
 
 exports.uploadScan = async (req, res) => {
     if (!req.file) {
@@ -16,13 +13,19 @@ exports.uploadScan = async (req, res) => {
         const imagePath = req.file.path;
         const userId = req.user._id;
 
-        // TODO: Replace with Real AI result
-        const diagnosis = 'Brain Tumor Detected with 85% confidence';
+        // Read the image file and convert to base64
+        const imageBuffer = fs.readFileSync(imagePath);
+        const base64Image = imageBuffer.toString('base64');
+
+        // Get AI analysis from Gemini
+        const analysis = await analyzeBrainScan(base64Image);
 
         const scan = new Scan({
             user: userId,
             imageUrl: imagePath,
-            diagnosisResult: diagnosis,
+            diagnosisResult: analysis.analysis,
+            confidence: analysis.confidence,
+            analysisTimestamp: analysis.timestamp
         });
 
         await scan.save();
@@ -30,31 +33,53 @@ exports.uploadScan = async (req, res) => {
         // Send Notification Email
         await sendEmail({
             email: req.user.email,
-            subject: 'Your BrainScan Diagnosis is Ready!',
-            message: `Hello ${req.user.firstName},\n\nYour scan has been analyzed.\nDiagnosis: ${diagnosis}\n\nThank you for using BrainScan!`,
+            subject: 'Your BrainScan Analysis is Ready!',
+            message: `
+Hello ${req.user.firstName},
+
+Your brain scan has been analyzed by our AI system.
+
+Analysis Results:
+${analysis.analysis}
+
+Confidence Level: ${(analysis.confidence * 100).toFixed(1)}%
+
+Thank you for using BrainScan!
+
+Best regards,
+BrainScan Team
+            `
         });
 
         res.status(201).json({
-            message: 'Scan uploaded, analyzed, and notification sent successfully.',
-            scan
+            message: 'Scan uploaded and analyzed successfully.',
+            scan: {
+                id: scan._id,
+                diagnosisResult: scan.diagnosisResult,
+                confidence: scan.confidence,
+                analysisTimestamp: scan.analysisTimestamp
+            }
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Scan upload error:', error);
+        res.status(500).json({ 
+            message: 'Error processing scan',
+            error: error.message 
+        });
     }
 };
-
 
 // Get All Scans of the Logged-in User
 exports.getMyScans = async (req, res) => {
     try {
-        const scans = await Scan.find({ user: req.user._id }).sort({ createdAt: -1 });
+        const scans = await Scan.find({ user: req.user._id })
+            .select('-__v')
+            .sort({ createdAt: -1 });
         res.status(200).json(scans);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
-
-
 
 // Delete a Scan by ID
 exports.deleteScan = async (req, res) => {
@@ -83,7 +108,6 @@ exports.deleteScan = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // Export Scans To PDF
 exports.exportScanToPDF = async (req, res) => {

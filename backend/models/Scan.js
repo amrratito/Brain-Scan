@@ -14,10 +14,18 @@ const scanSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    createdAt: {
+    confidence: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 1
+    },
+    analysisTimestamp: {
         type: Date,
-        default: Date.now
+        required: true
     }
+}, {
+    timestamps: true
 });
 
 const Scan = mongoose.model('Scan', scanSchema);
