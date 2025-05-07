@@ -51,7 +51,7 @@ const upload = require('../middlewares/uploadMiddleware');
  *       500:
  *         description: Server error
  */
-router.post('/upload', protect, upload.single('file'), uploadScan);
+router.post('/upload', protect, upload.single('scanImage'), uploadScan);
 
 /**
  * @swagger
