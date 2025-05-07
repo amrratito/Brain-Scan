@@ -1,0 +1,142 @@
+const fs = require('fs');
+const path = require('path');
+const Scan = require('../models/Scan');
+const sendEmail = require('../utils/sendEmail');
+const PDFDocument = require('pdfkit');
+
+
+
+
+exports.uploadScan = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    try {
+        const imagePath = req.file.path;
+        const userId = req.user._id;
+
+        // TODO: Replace with Real AI result
+        const diagnosis = 'Brain Tumor Detected with 85% confidence';
+
+        const scan = new Scan({
+            user: userId,
+            imageUrl: imagePath,
+            diagnosisResult: diagnosis,
+        });
+
+        await scan.save();
+
+        // Send Notification Email
+        await sendEmail({
+            email: req.user.email,
+            subject: 'Your BrainScan Diagnosis is Ready!',
+            message: `Hello ${req.user.firstName},\n\nYour scan has been analyzed.\nDiagnosis: ${diagnosis}\n\nThank you for using BrainScan!`,
+        });
+
+        res.status(201).json({
+            message: 'Scan uploaded, analyzed, and notification sent successfully.',
+            scan
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+// Get All Scans of the Logged-in User
+exports.getMyScans = async (req, res) => {
+    try {
+        const scans = await Scan.find({ user: req.user._id }).sort({ createdAt: -1 });
+        res.status(200).json(scans);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+
+// Delete a Scan by ID
+exports.deleteScan = async (req, res) => {
+    try {
+        const scan = await Scan.findById(req.params.id);
+
+        if (!scan) {
+            return res.status(404).json({ message: 'Scan not found' });
+        }
+
+        // Make sure user owns this scan
+        if (scan.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to delete this scan' });
+        }
+
+        // Delete file from uploads folder
+        const fs = require('fs');
+        if (fs.existsSync(scan.imageUrl)) {
+            fs.unlinkSync(scan.imageUrl); // Delete the image
+        }
+
+        await scan.deleteOne();
+
+        res.status(200).json({ message: 'Scan deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
+// Export Scans To PDF
+exports.exportScanToPDF = async (req, res) => {
+    try {
+        const scan = await Scan.findById(req.params.id).populate('user');
+
+        if (!scan) {
+            return res.status(404).json({ message: 'Scan not found' });
+        }
+
+        // Check user owns scan
+        if (scan.user._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Create PDF
+        const doc = new PDFDocument();
+        const filename = `ScanReport_${scan._id}.pdf`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/pdf');
+
+        doc.pipe(res);
+
+        // Title
+        doc.fontSize(20).text('BrainScan Diagnosis Report', { align: 'center' });
+        doc.moveDown();
+
+        // User Info
+        doc.fontSize(14).text(`Name: ${scan.user.firstName} ${scan.user.lastName}`);
+        doc.text(`Email: ${scan.user.email}`);
+        doc.text(`Date: ${scan.createdAt.toDateString()}`);
+        doc.moveDown();
+
+        // Diagnosis
+        doc.fontSize(16).text('Diagnosis Result:', { underline: true });
+        doc.fontSize(14).text(scan.diagnosisResult || 'No diagnosis available.');
+        doc.moveDown();
+
+        // Image (if file exists)
+        const imagePath = path.resolve(scan.imageUrl);
+        const fs = require('fs');
+        if (fs.existsSync(imagePath)) {
+            doc.addPage().image(imagePath, {
+                fit: [500, 400],
+                align: 'center',
+                valign: 'center'
+            });
+        }
+
+        doc.end();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
