@@ -84,30 +84,44 @@ exports.getMyScans = async (req, res) => {
 // Delete a Scan by ID
 exports.deleteScan = async (req, res) => {
     try {
-        const scan = await Scan.findById(req.params.id);
+        const { id } = req.params;
 
+        // Optional: Validate the ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid scan ID.' });
+        }
+
+        const scan = await Scan.findById(id);
+
+        // If no scan found
         if (!scan) {
-            return res.status(404).json({ message: 'Scan not found' });
+            return res.status(404).json({ message: 'Scan not found.' });
         }
 
-        // Make sure user owns this scan
+        // Ensure req.user is defined and has _id
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({ message: 'Unauthorized. User info missing.' });
+        }
+
+        // Check if user owns the scan
         if (scan.user.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'Not authorized to delete this scan' });
+            return res.status(403).json({ message: 'Not authorized to delete this scan.' });
         }
 
-        // Delete file from uploads folder
-        const fs = require('fs');
-        if (fs.existsSync(scan.imageUrl)) {
-            fs.unlinkSync(scan.imageUrl); // Delete the image
+        // Delete file from disk if it exists (safe path handling)
+        if (scan.imageUrl && fs.existsSync(path.resolve(scan.imageUrl))) {
+            fs.unlinkSync(path.resolve(scan.imageUrl));
         }
 
         await scan.deleteOne();
 
-        res.status(200).json({ message: 'Scan deleted successfully' });
+        res.status(200).json({ message: 'Scan deleted successfully.' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Delete scan error:', error);
+        res.status(500).json({ message: 'Server error: ' + error.message });
     }
 };
+
 
 // Export Scans To PDF
 exports.exportScanToPDF = async (req, res) => {
