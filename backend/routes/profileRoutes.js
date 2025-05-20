@@ -5,7 +5,8 @@ const {
     getProfile,
     changeEmail,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    changeName
 } = require('../controllers/profileController');
 
 /**
@@ -95,6 +96,9 @@ router.put('/change-email', protect, changeEmail);
  *         description: Not authorized
  */
 router.put('/change-password', protect, changePassword);
+
+
+router.put('/change-name', protect , changeName);
 
 /**
  * @swagger

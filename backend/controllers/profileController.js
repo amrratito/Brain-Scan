@@ -13,6 +13,30 @@ exports.getProfile = async (req, res) => {
     res.status(200).json(user);
 };
 
+// Update User Profile (firstName, lastName)
+exports.changeName = async (req, res) => {
+    const { firstName, lastName } = req.body;
+
+    if (!firstName && !lastName) {
+        return res.status(400).json({ message: 'At least one of firstName or lastName must be provided.' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+
+        await user.save();
+        res.status(200).json({ message: 'Profile updated successfully.', user });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 // Change Email
 exports.changeEmail = async (req, res) => {

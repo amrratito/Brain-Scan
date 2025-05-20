@@ -23,5 +23,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export the Express app for Vercel
-
+module.exports = app;
 module.exports.handler = serverless(app);

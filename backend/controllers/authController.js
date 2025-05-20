@@ -47,18 +47,18 @@ exports.register = async (req, res) => {
         try {
             await sendEmail({
                 email: user.email,
-                subject: 'Verify Your BrainScan Account',
+                subject: 'Verify Your NeuraX Account',
                 message: `
 Hello ${user.firstName},
 
-Thank you for registering with BrainScan!
+Thank you for registering with NeuraX!
 
 Your verification code is: ${verificationCode}
 
 Please use this code to verify your email address.
 
 Best regards,
-BrainScan Team
+NeuraX Team
                 `
             });
             console.log('Verification email sent successfully to:', user.email);
