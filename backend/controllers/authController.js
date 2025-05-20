@@ -154,6 +154,10 @@ exports.verifyEmail = async (req, res) => {
 exports.resendCode = async (req, res) => {
     const { email } = req.body;
 
+    if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Invalid or missing email.' });
+    }
+
     try {
         const user = await User.findOne({ email });
 
@@ -169,11 +173,15 @@ exports.resendCode = async (req, res) => {
         user.verificationCode = newCode;
         await user.save();
 
-        await sendEmail(user.email, 'Your New Verification Code', `New code: ${newCode}`);
+        await sendEmail({
+            email: user.email,
+            subject: 'Your New Verification Code',
+            message: `New code: ${newCode}`
+        });
 
         res.status(200).json({ message: 'Verification code resent.' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: `Email could not be sent: ${error.message}` });
     }
 };
 
