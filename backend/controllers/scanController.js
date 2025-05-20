@@ -3,6 +3,8 @@ const path = require('path');
 const Scan = require('../models/Scan');
 const sendEmail = require('../utils/sendEmail');
 const { analyzeBrainScan } = require('../utils/geminiService');
+const mongoose = require('mongoose');
+
 
 exports.uploadScan = async (req, res) => {
     if (!req.file) {
