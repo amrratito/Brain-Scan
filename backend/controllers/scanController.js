@@ -33,7 +33,7 @@ exports.uploadScan = async (req, res) => {
         // Send Notification Email
         await sendEmail({
             email: req.user.email,
-            subject: 'Your BrainScan Analysis is Ready!',
+            subject: 'Your NeuraX Analysis is Ready!',
             message: `
 Hello ${req.user.firstName},
 
@@ -44,10 +44,10 @@ ${analysis.analysis}
 
 Confidence Level: ${(analysis.confidence * 100).toFixed(1)}%
 
-Thank you for using BrainScan!
+Thank you for using NeuraX!
 
 Best regards,
-BrainScan Team
+NeuraX Team
             `
         });
 
