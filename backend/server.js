@@ -1,6 +1,8 @@
 const app = require('./app');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const serverless = require('serverless-http')
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
@@ -22,3 +24,4 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Export the Express app for Vercel
 module.exports = app;
+module.exports.handler = serverless(app);
