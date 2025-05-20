@@ -21,6 +21,7 @@ const app = express();
 
 
 // Middlewares
+app.use(bodyParse.json());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(helmet());
