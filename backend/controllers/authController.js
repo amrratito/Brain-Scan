@@ -205,13 +205,18 @@ exports.forgetPassword = async (req, res) => {
         await user.save();
 
         const resetLink = `https://yourfrontend.com/reset-password/${resetToken}`;
-        await sendEmail(user.email, 'Password Reset', `Reset your password here: ${resetLink}`);
+        await sendEmail({
+            email: user.email,
+            subject: 'Password Reset',
+            message: `Reset your password here: ${resetLink}`
+        });
 
         res.status(200).json({ message: 'Reset link sent to email.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 
 // Reset Password
