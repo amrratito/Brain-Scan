@@ -1,4 +1,4 @@
-const express = require('express');
+const serverless = require('serverless-http');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -12,11 +12,11 @@ const profileRoutes = require('./routes/profileRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const testRoutes = require('./routes/testRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
+const app = require('../backend/server');
 
 
 
-
-const app = express();
+module.exports = serverless(app);
 
 
 
