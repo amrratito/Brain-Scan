@@ -3,9 +3,10 @@ const router = express.Router();
 const { uploadScan, getMyScans, deleteScan, exportScanToPDF } = require('../controllers/scanController');
 const { protect } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const resizeScanImage = require('../utils/cloudinaryStorage');
+const uploadSingleImage = require('../middlewares/multerMiddleware');
 
-
-router.post('/upload', protect, upload.single('scanImage'), uploadScan);
+router.post('/upload', protect, uploadSingleImage('scanImage'),resizeScanImage, uploadScan);
 
 
 router.get('/my-scans', protect, getMyScans);

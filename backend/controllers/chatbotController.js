@@ -1,8 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const ChatSession = require('../models/ChatSession');
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Start a new chat session
 exports.startChat = async (req, res) => {
@@ -25,17 +21,8 @@ exports.startChat = async (req, res) => {
         // If there's an initial message, get AI response
         let response = null;
         if (initialMessage) {
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-            const result = await model.generateContent(initialMessage);
-            response = await result.response;
-            
-            chatSession.messages.push({
-                role: 'assistant',
-                content: response.text(),
-                timestamp: new Date()
-            });
-            
-            await chatSession.save();
+            // Gemini API removed
+            return res.status(503).json({ message: 'Chatbot AI feature is currently unavailable.' });
         }
 
         res.status(200).json({
@@ -73,9 +60,8 @@ exports.sendMessage = async (req, res) => {
         });
 
         // Get AI response
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const result = await model.generateContent(message);
-        const response = await result.response;
+        // Gemini API removed
+        return res.status(503).json({ message: 'Chatbot AI feature is currently unavailable.' });
 
         // Add AI response to session
         chatSession.messages.push({

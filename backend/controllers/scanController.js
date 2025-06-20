@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const Scan = require('../models/Scan');
 const sendEmail = require('../utils/sendEmail');
-const { analyzeBrainScan } = require('../utils/geminiService');
 const mongoose = require('mongoose');
 
 
@@ -12,19 +11,17 @@ exports.uploadScan = async (req, res) => {
     }
 
     try {
-        const imagePath = req.file.path;
         const userId = req.user._id;
-
-        // Read the image file and convert to base64
-        const imageBuffer = fs.readFileSync(imagePath);
-        const base64Image = imageBuffer.toString('base64');
-
-        // Get AI analysis from Gemini
-        const analysis = await analyzeBrainScan(base64Image);
+        const imageUrl = req.body.imageUrl;
+        if (!imageUrl) {
+            return res.status(400).json({ message: 'Image upload failed.' });
+        }
+        // Placeholder for removed Gemini API
+        return res.status(503).json({ message: 'AI analysis feature is currently unavailable.' });
 
         const scan = new Scan({
             user: userId,
-            imageUrl: imagePath,
+            imageUrl: imageUrl,
             diagnosisResult: analysis.analysis,
             confidence: analysis.confidence,
             analysisTimestamp: analysis.timestamp
