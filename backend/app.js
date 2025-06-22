@@ -10,8 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const scanRoutes = require('./routes/scanRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const testRoutes = require('./routes/testRoutes');
-const chatbotRoutes = require('./routes/chatbotRoutes');
+
 
 
 
@@ -41,8 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/scan', scanRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/test', testRoutes);
-app.use('/api/chatbot', chatbotRoutes);
+
 
 
 

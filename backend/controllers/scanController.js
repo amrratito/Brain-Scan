@@ -5,6 +5,7 @@ const sendEmail = require('../utils/sendEmail');
 const mongoose = require('mongoose');
 
 
+
 exports.uploadScan = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded.' });
@@ -13,11 +14,26 @@ exports.uploadScan = async (req, res) => {
     try {
         const userId = req.user._id;
         const imageUrl = req.body.imageUrl;
+        
+        // Advanced AI analysis options
+        const aiOptions = {
+            scanType: req.body.scanType || 'mri', // mri, ct, xray
+            analysisType: req.body.analysisType || 'general', // general, tumor, stroke, atrophy, hemorrhage
+            provider: req.body.aiProvider || 'huggingface', // huggingface, openai, custom
+            detailed: req.body.detailed !== 'false' // true by default
+        };
+        
         if (!imageUrl) {
             return res.status(400).json({ message: 'Image upload failed.' });
         }
-        // Placeholder for removed Gemini API
-        return res.status(503).json({ message: 'AI analysis feature is currently unavailable.' });
+
+        // Validate the image
+        await advancedAIDiagnosis.validateImage(imageUrl);
+
+        // Perform advanced AI analysis
+        console.log('Starting advanced AI analysis with options:', aiOptions);
+        const analysis = await advancedAIDiagnosis.analyzeBrainScan(imageUrl, aiOptions);
+        console.log('Advanced AI analysis completed:', analysis);
 
         const scan = new Scan({
             user: userId,
@@ -29,19 +45,25 @@ exports.uploadScan = async (req, res) => {
 
         await scan.save();
 
-        // Send Notification Email
+        // Send enhanced notification email
         await sendEmail({
             email: req.user.email,
-            subject: 'Your NeuraX Analysis is Ready!',
+            subject: 'Your Advanced NeuraX Analysis is Ready!',
             message: `
 Hello ${req.user.firstName},
 
-Your brain scan has been analyzed by our AI system.
+Your ${aiOptions.scanType.toUpperCase()} brain scan has been analyzed using our advanced AI system.
+
+Analysis Type: ${aiOptions.analysisType.toUpperCase()}
+Scan Type: ${aiOptions.scanType.toUpperCase()}
 
 Analysis Results:
 ${analysis.analysis}
 
 Confidence Level: ${(analysis.confidence * 100).toFixed(1)}%
+AI Provider: ${analysis.provider}
+
+${analysis.recommendations ? `Recommendations: ${analysis.recommendations}` : ''}
 
 Thank you for using NeuraX!
 
@@ -56,7 +78,12 @@ NeuraX Team
                 id: scan._id,
                 diagnosisResult: scan.diagnosisResult,
                 confidence: scan.confidence,
-                analysisTimestamp: scan.analysisTimestamp
+                analysisTimestamp: scan.analysisTimestamp,
+                aiProvider: analysis.provider,
+                scanType: analysis.scanType,
+                analysisType: analysis.analysisType,
+                details: analysis.details,
+                recommendations: analysis.recommendations
             }
         });
     } catch (error) {
