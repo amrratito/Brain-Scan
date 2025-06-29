@@ -6,15 +6,15 @@ const upload = require('../middlewares/uploadMiddleware');
 const resizeScanImage = require('../utils/cloudinaryStorage');
 const uploadSingleImage = require('../middlewares/multerMiddleware');
 
-router.post('/upload', protect, uploadSingleImage('scanImage'),resizeScanImage, uploadScan);
+router.post('/upload',  uploadSingleImage('scanImage'),resizeScanImage, uploadScan);
 
 
-router.get('/my-scans', protect, getMyScans);
+// router.get('/my-scans', protect, getMyScans);
 
-// Delete user's scan
-router.delete('/delete/:id', protect, deleteScan);
+// // Delete user's scan
+// router.delete('/delete/:id', protect, deleteScan);
 
-// Exports user's scan to PDF
-router.get('/export/:id', protect, exportScanToPDF);
+// // Exports user's scan to PDF
+// router.get('/export/:id', protect, exportScanToPDF);
 
 module.exports = router;

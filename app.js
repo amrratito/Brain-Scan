@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(helmet());
-
+app.set('trust proxy', 1); // 1 معناها أول proxy
 
 
 const limiter = rateLimit({
