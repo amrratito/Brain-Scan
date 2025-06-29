@@ -6,32 +6,26 @@ const scanSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-
-    imageUrl: {
+    image_path: {
         type: String,
         required: true
     },
-
-    diagnosisResult: {
+    probability: {
         type: String,
         required: true
     },
-
+    label: {
+        type: String,
+        required: true
+    },
     confidence: {
-        type: Number,
+        type: String,
         required: true,
-        min: 0,
-        max: 1
-    },
-    
-    analysisTimestamp: {
-        type: Date,
-        required: true
     }
 }, {
     timestamps: true
 });
 
-const Scan = mongoose.model('Scan', scanSchema);
+const ScanModel = mongoose.model('Scan', scanSchema);
 
-module.exports = Scan;
+module.exports = ScanModel;

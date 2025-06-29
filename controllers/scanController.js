@@ -1,8 +1,169 @@
-// const fs = require('fs');
-// const path = require('path');
-// const Scan = require('../models/Scan');
-// const sendEmail = require('../utils/sendEmail');
-// const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
+const sendEmail = require('../utils/sendEmail');
+const mongoose = require('mongoose');
+const axios = require("axios");
+const FormData = require("form-data");
+const ScanModel = require("../models/Scan");
+const PDFDocument = require('pdfkit');
+
+
+
+
+exports.uploadScan = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  try {
+    const userId = req.user._id;
+
+    const imageBuffer = req.file.buffer;
+    const originalName = req.file.originalname;
+
+    const formData = new FormData();
+    formData.append("image", imageBuffer, {
+      filename: originalName,
+      contentType: req.file.mimetype,
+    });
+
+    const flaskResponse = await axios.post(
+      "http://127.0.0.1:5001/predict",
+      formData,
+      {
+        headers: formData.getHeaders(),
+      }
+    );
+    console.log("🚀 ~ exports.uploadScan= ~ flaskResponse:", flaskResponse);
+
+    const result = flaskResponse.data;
+
+    console.log("🎯 Flask Model Response:", result);
+    const craeteScan = await ScanModel.create({
+      user: userId,
+      ...result,
+    });
+    // Example: Return result directly to client
+    res.status(200).json({
+      message: "تم انشاء المسح بنجاح",
+      data: craeteScan,
+    });
+  } catch (err) {
+    console.error("❌ Error calling Flask model:", err.message);
+    res
+      .status(500)
+      .json({ message: "Failed to analyze image", error: err.message });
+  }
+};
+
+// Get All Scans of the Logged-in User
+exports.getMyScans = async (req, res) => {
+  try {
+    const scans = await ScanModel.find({ user: req.user._id })
+      .select("-__v")
+      .sort({ createdAt: -1 });
+    res
+      .status(200)
+      .json({ message: "تم ارجاع جميع المسحات بنجاح", data: scans });
+  } catch (error) {
+    res.status(500).json(err);
+  }
+};
+
+// Delete a Scan by ID
+exports.deleteScan = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Optional: Validate the ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid scan ID." });
+    }
+
+    const scan = await ScanModel.findById(id);
+
+    // If no scan found
+    if (!scan) {
+      return res.status(404).json({ message: "Scan not found." });
+    }
+
+    // Ensure req.user is defined and has _id
+    if (!req.user || !req.user._id) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized. User info missing." });
+    }
+
+    // Check if user owns the scan
+    if (scan.user.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this scan." });
+    }
+
+    await scan.deleteOne();
+
+    res.status(200).json({ message: "تم مسح جميع المسحات بنجاح", data: null });
+  } catch (error) {
+    console.error("Delete scan error:", error);
+    res.status(500).json({ message: "Server error: " + error.message });
+  }
+};
+
+// Export Scans To PDF
+exports.exportScanToPDF = async (req, res) => {
+    try {
+        const scan = await ScanModel.findById(req.params.id).populate('user');
+
+        if (!scan) {
+            return res.status(404).json({ message: 'Scan not found' });
+        }
+
+        // Check user owns scan
+        if (scan.user._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Create PDF
+        const doc = new PDFDocument();
+        const filename = `ScanReport_${scan._id}.pdf`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/pdf');
+
+        doc.pipe(res);
+
+        // Title
+        doc.fontSize(20).text('BrainScan Diagnosis Report', { align: 'center' });
+        doc.moveDown();
+
+        // User Info
+        doc.fontSize(14).text(`Name: ${scan.user.firstName} ${scan.user.lastName}`);
+        doc.text(`Email: ${scan.user.email}`);
+        doc.text(`Date: ${scan.createdAt.toDateString()}`);
+        doc.moveDown();
+
+        // Diagnosis
+        doc.fontSize(16).text('Diagnosis Result:', { underline: true });
+        doc.fontSize(14).text(scan.diagnosisResult || 'No diagnosis available.');
+        doc.moveDown();
+
+        // Image (if file exists)
+        const imagePath = path.resolve(scan.imageUrl);
+        const fs = require('fs');
+        if (fs.existsSync(imagePath)) {
+            doc.addPage().image(imagePath, {
+                fit: [500, 400],
+                align: 'center',
+                valign: 'center'
+            });
+        }
+
+        doc.end();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 
 
@@ -14,7 +175,7 @@
 //     try {
 //         const userId = req.user._id;
 //         const imageUrl = req.body.imageUrl;
-        
+
 //         // Advanced AI analysis options
 //         const aiOptions = {
 //             scanType: req.body.scanType || 'mri', // mri, ct, xray
@@ -22,7 +183,7 @@
 //             provider: req.body.aiProvider || 'huggingface', // huggingface, openai, custom
 //             detailed: req.body.detailed !== 'false' // true by default
 //         };
-        
+
 //         if (!imageUrl) {
 //             return res.status(400).json({ message: 'Image upload failed.' });
 //         }
@@ -88,9 +249,9 @@
 //         });
 //     } catch (error) {
 //         console.error('Scan upload error:', error);
-//         res.status(500).json({ 
+//         res.status(500).json({
 //             message: 'Error processing scan',
-//             error: error.message 
+//             error: error.message
 //         });
 //     }
 // };
@@ -148,7 +309,6 @@
 //     }
 // };
 
-
 // // Export Scans To PDF
 // exports.exportScanToPDF = async (req, res) => {
 //     try {
@@ -204,43 +364,4 @@
 //     }
 // };
 
-
 //*********** ******* ******* ******* ******* ******* ******* ******* ******* */
-
-const axios = require('axios');
-const FormData = require('form-data');
-exports.uploadScan = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: 'No file uploaded.' });
-    }
-
-    try {
-        const imageBuffer = req.file.buffer;
-        const originalName = req.file.originalname;
-
-        const formData = new FormData();
-        formData.append('image', imageBuffer, {
-            filename: originalName,
-            contentType: req.file.mimetype
-        });
-
-        const flaskResponse = await axios.post('http://127.0.0.1:5001/predict', formData, {
-            headers: formData.getHeaders()
-        });
-        console.log("🚀 ~ exports.uploadScan= ~ flaskResponse:", flaskResponse)
-
-        const result = flaskResponse.data;
-
-        console.log('🎯 Flask Model Response:', result);
-
-        // Example: Return result directly to client
-        res.status(200).json({
-            message: 'Scan analyzed successfully',
-            prediction: result
-        });
-
-    } catch (err) {
-        console.error('❌ Error calling Flask model:', err.message);
-        res.status(500).json({ message: 'Failed to analyze image', error: err.message });
-    }
-};
